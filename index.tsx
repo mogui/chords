@@ -305,9 +305,9 @@ const ChordProgressionBuilder = () => {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-2">
             <Music className="w-10 h-10 text-purple-400" />
-            <h1 className="text-4xl font-bold">Metal Chord Progression Builder</h1>
+            <h1 className="text-4xl font-bold">Chord Progression Builder</h1>
           </div>
-          <p className="text-gray-300">Crea progressioni di accordi per death metal melodico</p>
+          <p className="text-gray-300">Crea progressioni di accordi</p>
         </div>
 
         {/* Selettori */}
