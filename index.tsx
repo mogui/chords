@@ -151,6 +151,39 @@ const ChordProgressionBuilder = () => {
     initializeProgression(numBars, beatsPerBar);
   };
 
+  const fillRandomProgression = () => {
+    const beatsPerBar = parseInt(timeSignature.split('/')[0]);
+    const newProgression = [];
+    
+    for (let i = 0; i < numBars; i++) {
+      const beats = [];
+      let j = 0;
+      
+      while (j < beatsPerBar) {
+        // Seleziona un accordo casuale dalla scala armonizzata
+        const randomChord = harmonizedScale[Math.floor(Math.random() * harmonizedScale.length)];
+        
+        // Determina una durata casuale (1-4 beat, ma non oltre la fine della battuta)
+        const maxDuration = Math.min(4, beatsPerBar - j);
+        const duration = Math.floor(Math.random() * maxDuration) + 1;
+        
+        // Riempie il primo beat con l'accordo
+        beats.push(randomChord);
+        
+        // Riempie i beat successivi con null (l'accordo continua)
+        for (let k = 1; k < duration; k++) {
+          beats.push(null);
+        }
+        
+        j += duration;
+      }
+      
+      newProgression.push({ bar: i + 1, beats });
+    }
+    
+    setProgression(newProgression);
+  };
+
   // Gestione drag and drop
   const handleDragStart = (chord) => {
     setDraggedChord(chord);
@@ -248,26 +281,41 @@ const ChordProgressionBuilder = () => {
     
     setIsPlaying(true);
     shouldStopRef.current = false;
-    const beatsPerBar = parseInt(timeSignature.split('/')[0]);
     const beatDuration = (60 / bpm) * 1000;
-    let lastChord = null;
 
     for (let i = 0; i < progression.length; i++) {
       if (shouldStopRef.current) break;
       
       setCurrentBar(i);
-      for (let j = 0; j < progression[i].beats.length; j++) {
+      let j = 0;
+      
+      while (j < progression[i].beats.length) {
         if (shouldStopRef.current) break;
         
         const chord = progression[i].beats[j];
-        // Se il beat è vuoto, usa l'accordo precedente
-        const chordToPlay = chord || lastChord;
         
-        if (chordToPlay) {
-          playChord(chordToPlay, beatDuration * 0.9);
-          lastChord = chordToPlay;
+        if (chord) {
+          // Conta quanti beat consecutivi sono vuoti dopo questo accordo
+          let duration = 1;
+          while (j + duration < progression[i].beats.length && 
+                 progression[i].beats[j + duration] === null) {
+            duration++;
+          }
+          
+          // Suona l'accordo per tutta la sua durata
+          playChord(chord, beatDuration * duration * 0.9);
+          
+          // Aspetta per tutti i beat che l'accordo occupa
+          for (let k = 0; k < duration; k++) {
+            await new Promise(resolve => setTimeout(resolve, beatDuration));
+          }
+          
+          j += duration;
+        } else {
+          // Beat vuoto senza accordo precedente nella battuta
+          await new Promise(resolve => setTimeout(resolve, beatDuration));
+          j++;
         }
-        await new Promise(resolve => setTimeout(resolve, beatDuration));
       }
     }
     
@@ -456,6 +504,13 @@ const ChordProgressionBuilder = () => {
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold text-purple-300">La Tua Progressione</h2>
             <div className="flex gap-2">
+              <button
+                onClick={fillRandomProgression}
+                className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded-lg transition-colors"
+              >
+                <Music className="w-4 h-4" />
+                Random
+              </button>
               {progression.some(p => p.beats.some(b => b)) && (
                 <>
                   <button
@@ -535,10 +590,12 @@ const ChordProgressionBuilder = () => {
                           key={beatIndex}
                           onDragOver={handleDragOver}
                           onDrop={(e) => handleDrop(e, barIndex, beatIndex)}
-                          className={`relative bg-gray-800 rounded p-2 min-h-[80px] flex flex-col items-center justify-center border-2 transition-all ${
+                          className={`relative rounded p-2 min-h-[80px] flex flex-col items-center justify-center border-2 transition-all ${
                             draggedChord && !beat
                               ? 'border-purple-500 border-dashed bg-gray-700'
-                              : 'border-gray-600'
+                              : beat
+                              ? `${getFunctionColor(beat.function)} border-2`
+                              : 'bg-gray-800 border-gray-600'
                           }`}
                         >
                           <div className="text-xs text-gray-500 mb-1">
@@ -547,11 +604,14 @@ const ChordProgressionBuilder = () => {
                           
                           {beat ? (
                             <>
-                              <div className="text-lg font-bold text-white mb-1">
+                              <div className="text-lg font-bold mb-1">
                                 {beat.chord}
                               </div>
-                              <div className="text-xs text-gray-400">
+                              <div className="text-xs opacity-70 mb-1">
                                 {beat.roman}
+                              </div>
+                              <div className="text-[10px] font-semibold opacity-80">
+                                {beat.function}
                               </div>
                               <button
                                 onClick={() => clearBeat(barIndex, beatIndex)}
