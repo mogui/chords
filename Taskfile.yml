@@ -1,0 +1,52 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install dependencies
+    cmds:
+      - npm install
+
+  dev:
+    desc: Start development server
+    cmds:
+      - npm run dev
+
+  build:
+    desc: Build for production
+    cmds:
+      - npm run build
+
+  preview:
+    desc: Preview production build locally
+    deps: [build]
+    cmds:
+      - npm run preview
+
+  serve:
+    desc: Build and serve the application
+    deps: [build]
+    cmds:
+      - npm run preview
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf dist node_modules
+
+  setup:
+    desc: Setup project (install dependencies)
+    cmds:
+      - task: install
+
+  deploy:
+    desc: Deploy to GitHub Pages (push to trigger workflow)
+    deps: [build]
+    cmds:
+      - git add .
+      - git commit -m "Deploy to GitHub Pages" || true
+      - git push
+
+  default:
+    desc: Run development server (default task)
+    cmds:
+      - task: dev
